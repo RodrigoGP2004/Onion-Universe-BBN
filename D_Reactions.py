@@ -14,6 +14,25 @@ def get_rates(T9, coefs_list):
         rate += np.exp(np.clip(reaclib_7(T9, *c), -700, 100))
     return rate
 
+def fit_reaclib_7_free(T9, R):
+    t13 = np.cbrt(T9)
+    t53 = T9 * t13**2
+    lnt9 = np.log(T9)
+    X = np.column_stack([np.ones_like(T9), 1/T9, 1/t13, t13, T9, t53, lnt9])
+    Y = np.log(R)
+    coefs, _, _, _ = np.linalg.lstsq(X, Y, rcond=None)
+    return [coefs.tolist()]
+
+def apply_detailed_balance(new_dir, jina_dir, jina_inv):
+    shift = [jina_inv[i] - jina_dir[i] for i in range(7)]
+    return [[new_dir[0][i] + shift[i] for i in range(7)]]
+
+def format_c(name, arr_list):
+    lines = []
+    for arr in arr_list:
+        lines.append("{" + ", ".join([f"{x:g}" for x in arr]) + "}")
+    return f"double {name}[{len(arr_list)}][7] = {{{', '.join(lines)}}};"
+
 # Experimental Data
 
 T9_luna = np.array([0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1.0, 1.5, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0])
@@ -44,46 +63,27 @@ jina_ddn_inv = [[19.6369, -37.9358, -4.2292, 1.6932, -0.0855529, -1.35709e-25, -
 jina_ddp = [[18.8052, 4.36209e-5, -4.32296, 1.91572, -0.081562, -3.28804e-22, -0.879518]]
 jina_ddp_inv = [[19.3545, -46.799, -4.32296, 1.91572, -0.081562, -3.28804e-22, -0.879518]]
 
-# New fits via SVD
+# New polynomials
 
-def fit_reaclib_7_free(T9, R):
-    t13 = np.cbrt(T9)
-    t53 = T9 * t13**2
-    lnt9 = np.log(T9)
-    
-    # Matriz de diseño con los 7 términos de la ecuación de Reaclib
-    X = np.column_stack([np.ones_like(T9), 1/T9, 1/t13, t13, T9, t53, lnt9])
-    Y = np.log(R)
-    
-    # Resolvemos el sistema lineal de forma exacta
-    coefs, _, _, _ = np.linalg.lstsq(X, Y, rcond=None)
-    return [coefs.tolist()]
-
-# Calculamos los nuevos polinomios (1 componente con 7 parámetros libres)
 new_luna_dir = fit_reaclib_7_free(T9_luna, R_luna)
 new_ddn_dir = fit_reaclib_7_free(T9_gomez, R_ddn)
 new_ddp_dir = fit_reaclib_7_free(T9_gomez, R_ddp)
 
-# Balance Detallado para inversas (El desplazamiento termodinámico es constante)
-def apply_detailed_balance(new_dir, jina_dir, jina_inv):
-    shift = [jina_inv[i] - jina_dir[i] for i in range(7)]
-    return [[new_dir[0][i] + shift[i] for i in range(7)]]
+# Detailed balance for inverse reactions
 
 new_luna_inv = apply_detailed_balance(new_luna_dir, jina_dp[0], jina_dp_inv[0])
 new_ddn_inv = apply_detailed_balance(new_ddn_dir, jina_ddn[0], jina_ddn_inv[0])
 new_ddp_inv = apply_detailed_balance(new_ddp_dir, jina_ddp[0], jina_ddp_inv[0])
 
-# =====================================================================
-# 4. GRÁFICA (CON AJUSTES VISUALES: LÍMITE Y + TRANSPARENCIA)
-# =====================================================================
+# Plot (general config)
+
 T_MeV_cont = np.logspace(np.log10(1), np.log10(1e-3), 500)
 T9_cont = T_MeV_cont * 11.6045
-
 plt.rcParams.update({'font.size': 14, 'axes.titlesize': 20, 'axes.labelsize': 20, 'xtick.labelsize': 16, 'ytick.labelsize': 16, 'legend.fontsize': 12})
 fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 6))
 step = 3
 
-# ---- PANEL IZQUIERDO: JINA (Curvas) + DATOS EXPERIMENTALES (Puntos) ----
+# Left panel
 ax1.loglog(T_MeV_cont, get_rates(T9_cont, jina_dp), color='C0', linestyle='-', alpha=0.5, label=r'JINA $d(p,\gamma)^3\mathrm{He}$')
 ax1.loglog(T_MeV_cont, get_rates(T9_cont, jina_ddn), color='C1', linestyle='-', alpha=0.5, label=r'JINA $d(d,n)^3\mathrm{He}$')
 ax1.loglog(T_MeV_cont, get_rates(T9_cont, jina_ddp), color='C2', linestyle='-', alpha=0.5, label=r'JINA $d(d,p)^3\mathrm{H}$')
@@ -93,15 +93,15 @@ ax1.errorbar(T9_gomez[::step]/11.6045, R_ddn[::step], yerr=err_ddn[:, ::step], f
 ax1.errorbar(T9_gomez[::step]/11.6045, R_ddp[::step], yerr=err_ddp[:, ::step], fmt='^', color='C2', markersize=5, capsize=4, label=r'Gómez Iñesta $d(d,p)^3\mathrm{H}$')
 
 ax1.set_xlim(1, 0.001)
-ax1.set_ylim(bottom=1e-3) # <-- NUEVO LÍMITE Y EN EL PANEL IZQUIERDO
+ax1.set_ylim(bottom=1e-3)
 ax1.set_xlabel(r'Temperature $T$ [MeV]')
 ax1.set_ylabel(r'Reaction rate $N_A \langle \sigma v \rangle$ [cm$^3$ s$^{-1}$ mol$^{-1}$]')
 ax1.set_title('Updated reaction Rates vs JINA Database')
 ax1.grid(True, which="both", ls="--", alpha=0.5)
 ax1.legend()
 
-# ---- PANEL DERECHO: RATIO PUNTOS/JINA + RATIO NUEVOFIT/JINA ----
-# 1. Puntos (Datos experimentales / JINA) -> Añadido alpha=0.5 para transparencia
+# Right panel
+
 ax2.errorbar(T9_luna/11.6045, R_luna / get_rates(T9_luna, jina_dp), 
              yerr=err_luna / get_rates(T9_luna, jina_dp), fmt='o', color='C0', markersize=5, capsize=4, alpha=0.9, label=r'Data: $d(p,\gamma)^3\mathrm{He}$')
 ax2.errorbar(T9_gomez[::step]/11.6045, R_ddn[::step] / get_rates(T9_gomez[::step], jina_ddn), 
@@ -109,7 +109,6 @@ ax2.errorbar(T9_gomez[::step]/11.6045, R_ddn[::step] / get_rates(T9_gomez[::step
 ax2.errorbar(T9_gomez[::step]/11.6045, R_ddp[::step] / get_rates(T9_gomez[::step], jina_ddp), 
              yerr=err_ddp[:, ::step] / get_rates(T9_gomez[::step], jina_ddp), fmt='^', color='C2', markersize=5, capsize=4, alpha=0.9, label=r'Data: $d(d,p)^3\mathrm{H}$')
 
-# 2. Curvas continuas (Nuevos Fits polinómicos / JINA)
 ax2.plot(T_MeV_cont, get_rates(T9_cont, new_luna_dir) / get_rates(T9_cont, jina_dp), color='C0', linestyle='--', linewidth=2.5, label=r'Fit: $d(p,\gamma)^3\mathrm{He}$')
 ax2.plot(T_MeV_cont, get_rates(T9_cont, new_ddn_dir) / get_rates(T9_cont, jina_ddn), color='C1', linestyle='--', linewidth=2.5, label=r'Fit: $d(d,n)^3\mathrm{He}$')
 ax2.plot(T_MeV_cont, get_rates(T9_cont, new_ddp_dir) / get_rates(T9_cont, jina_ddp), color='C2', linestyle='--', linewidth=2.5, label=r'Fit: $d(d,p)^3\mathrm{H}$')
@@ -127,14 +126,7 @@ plt.tight_layout()
 plt.savefig('comparation_rates.pdf', format='pdf', bbox_inches='tight')
 print("Gráfica generada con éxito: 'comparation_rates.pdf'\n")
 
-# =====================================================================
-# 5. IMPRESIÓN DEL CÓDIGO C
-# =====================================================================
-def format_c(name, arr_list):
-    lines = []
-    for arr in arr_list:
-        lines.append("{" + ", ".join([f"{x:g}" for x in arr]) + "}")
-    return f"double {name}[{len(arr_list)}][7] = {{{', '.join(lines)}}};"
+# Print code to directly copy into C
 
 print("// --- CÓDIGO ACTUALIZADO PARA bbn.c ---")
 print(format_c("p_dp_3He", new_luna_dir))
