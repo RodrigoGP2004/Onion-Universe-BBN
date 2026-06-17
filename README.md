@@ -30,11 +30,9 @@ To run the program, use:
 ### BBN Abundances in the Onion Cosmology
 The slower expansion rate of the Onion model leads to a distinct nucleosynthesis freeze-out, requiring a heavily shifted baryon-to-photon ratio ($\eta$) to match Helium observations, and completely depleting primordial Deuterium.
 
-![BBN Abundances](plots/grafica_abundancias_ejemplo.png)
-*(Note: Upload one of your BBN mass fraction plots to the plots folder and link it here)*
+![BBN Abundances](plots/BBNOnion.png)
 
 ### CMB Angular Scale & $Y_p$ Likelihood Contours
 Intersection of the observational constraints on the $\eta - \Omega_{\Lambda 0}$ parameter space.
 
-![Contour Plot](plots/contour_Yp_and_theta_combined.png)
-*(Note: Upload your combined contour plot here)*
+![Contour Plot](plots/YpTheta.png)
