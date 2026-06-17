@@ -25,7 +25,7 @@ To run the program, use:
 - **Likelihood Analysis:** Computes multi-parameter grids ($\eta$ vs $\Omega_{\Lambda 0}$) to extract $1\sigma$, $2\sigma$, and $3\sigma$ confidence intervals for $Y_p$, $D/H$, and the CMB angular scale ($\theta_{CMB}$).
 - **Data Visualization:** Automated generation of mass fraction evolutions, Schramm plots, and 2D parameter contour maps.
 
-## 📊 Results
+## Results
 
 ### BBN Abundances in the Onion Cosmology
 The slower expansion rate of the Onion model leads to a distinct nucleosynthesis freeze-out, requiring a heavily shifted baryon-to-photon ratio ($\eta$) to match Helium observations, and completely depleting primordial Deuterium.
