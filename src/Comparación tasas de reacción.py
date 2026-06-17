@@ -1,9 +1,21 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-# =====================================================================
-# 1. DATOS EXPERIMENTALES (TABLAS COMPLETAS CON BARRAS DE ERROR)
-# =====================================================================
+def reaclib_7(T9, a0, a1, a2, a3, a4, a5, a6):
+    T9_safe = np.maximum(T9, 1e-9)
+    t13 = np.cbrt(T9_safe)
+    t53 = T9_safe * t13**2
+    lnt9 = np.log(T9_safe)
+    return a0 + a1/T9_safe + a2/t13 + a3*t13 + a4*T9_safe + a5*t53 + a6*lnt9
+
+def get_rates(T9, coefs_list):
+    rate = np.zeros_like(T9)
+    for c in coefs_list:
+        rate += np.exp(np.clip(reaclib_7(T9, *c), -700, 100))
+    return rate
+
+# Experimental Data
+
 T9_luna = np.array([0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1.0, 1.5, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0])
 R_luna = np.array([1.37e-11, 2.57e-5, 1.53e-3, 9.08e-1, 5.74, 1.29e2, 3.63e2, 6.32e2, 9.20e2, 1.52e3, 2.11e3, 2.67e3, 3.16e3, 3.56e3, 3.85e3, 4.01e3, 4.02e3])
 R_luna_low = np.array([1.35e-11, 2.53e-5, 1.51e-3, 8.94e-1, 5.65, 1.26e2, 3.52e2, 6.09e2, 8.79e2, 1.43e3, 1.95e3, 2.40e3, 2.76e3, 3.00e3, 3.09e3, 3.02e3, 2.75e3])
@@ -19,23 +31,8 @@ R_ddp = np.array([1.364e-08, 5.653e-05, 3.110e-03, 3.835e-02, 2.269e-01, 8.755e-
 fu_ddp = np.array([1.011]*50 + [1.013, 1.014, 1.014, 1.015, 1.016, 1.017, 1.018, 1.018, 1.018, 1.019])
 err_ddp = np.vstack((R_ddp - R_ddp/fu_ddp, R_ddp*fu_ddp - R_ddp))
 
-# =====================================================================
-# 2. FUNCIONES REACLIB Y COEFICIENTES JINA ORIGINALES
-# =====================================================================
-def reaclib_7(T9, a0, a1, a2, a3, a4, a5, a6):
-    T9_safe = np.maximum(T9, 1e-9)
-    t13 = np.cbrt(T9_safe)
-    t53 = T9_safe * t13**2
-    lnt9 = np.log(T9_safe)
-    return a0 + a1/T9_safe + a2/t13 + a3*t13 + a4*T9_safe + a5*t53 + a6*lnt9
+# Original fits
 
-def get_rates(T9, coefs_list):
-    rate = np.zeros_like(T9)
-    for c in coefs_list:
-        rate += np.exp(np.clip(reaclib_7(T9, *c), -700, 100))
-    return rate
-
-# JINA Originales
 jina_dp = [[7.52898, 0, -3.7208, 0.871782, 0, 0, -0.666667],
            [8.93525, 0, -3.7208, 0.198654, 0, 0, 0.333333]]
 jina_dp_inv = [[31.032, -63.7435, -3.7208, 0.871782, 0.0, 0.0, 0.833333],
@@ -47,12 +44,7 @@ jina_ddn_inv = [[19.6369, -37.9358, -4.2292, 1.6932, -0.0855529, -1.35709e-25, -
 jina_ddp = [[18.8052, 4.36209e-5, -4.32296, 1.91572, -0.081562, -3.28804e-22, -0.879518]]
 jina_ddp_inv = [[19.3545, -46.799, -4.32296, 1.91572, -0.081562, -3.28804e-22, -0.879518]]
 
-# =====================================================================
-# 3. AJUSTE EXACTO MEDIANTE ÁLGEBRA LINEAL (7 PARÁMETROS LIBRES)
-# =====================================================================
-# Al ser la fórmula de Reaclib lineal respecto a sus coeficientes,
-# usamos Mínimos Cuadrados Lineales (SVD) para encontrar el ajuste 
-# perfecto sin iteraciones, sin errores de covarianza y sin atascos.
+# New fits via SVD
 
 def fit_reaclib_7_free(T9, R):
     t13 = np.cbrt(T9)
