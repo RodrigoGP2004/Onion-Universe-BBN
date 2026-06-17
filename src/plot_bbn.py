@@ -18,16 +18,13 @@ mass_pesados = {
 
 lw = 2.5 
 
-#%%
 
 archivos_csv = glob.glob("resultados_bbn*.csv")
 if not archivos_csv:
     print("\nNota: No se encontró ningún archivo 'resultados_bbn*.csv'. Omitiendo gráficas de evolución BBN.")
 else:
     archivo_reciente = max(archivos_csv, key=os.path.getmtime)
-    print(f"========================================")
     print(f"Leyendo datos BBN desde: {archivo_reciente}")
-    print(f"========================================")
 
     try:
         df_bbn = pd.read_csv(archivo_reciente)
@@ -51,9 +48,7 @@ else:
         X_8B = 8 * df_bbn['8B'].iloc[-1]
         X_Pesados = df_bbn['Pesados'].iloc[-1]
 
-        print("\n" + "="*50)
-        print("   ABUNDANCIAS FINALES BBN (Fracciones de Masa X_i)")
-        print("="*50)
+        print("# ABUNDANCIAS FINALES BBN (Fracciones de Masa X_i)")
         print(f"Neutrones (n)    : {X_n:.6e}")
         print(f"Protones (p)     : {X_p:.6e}")
         print(f"Deuterio (D)     : {X_d:.6e}")
@@ -102,24 +97,17 @@ else:
     except Exception as e:
         print(f"Error al procesar el archivo {archivo_reciente}: {e}. Omitiendo Parte 1.")
 
-#%%
-
-# ACTUALIZADO: Nuevo patrón de búsqueda para barridos de parámetros
 archivos_eta = glob.glob("resultados_abundancias*.csv")
 
 if not archivos_eta:
     print("\nNota: No se encontró ningún archivo 'resultados_abundancias*.csv'. Omitiendo gráficas de barrido de eta.")
 else:
     archivo_eta_reciente = max(archivos_eta, key=os.path.getmtime)
-    print(f"\n========================================")
     print(f"Leyendo datos ETA desde: {archivo_eta_reciente}")
-    print(f"========================================")
 
     try:
         df_eta = pd.read_csv(archivo_eta_reciente)
         
-        # ACTUALIZADO: Medida de seguridad. Si el archivo tiene varios valores de Omega_L0, 
-        # nos quedamos solo con los datos del primer valor para graficar correctamente en función solo de eta.
         if 'Omega_L0' in df_eta.columns:
             omega_val = df_eta['Omega_L0'].iloc[0]
             df_eta = df_eta[df_eta['Omega_L0'] == omega_val]
@@ -140,15 +128,13 @@ else:
             if el in df_eta.columns:
                 df_eta['Pesados'] += A * df_eta[el]
 
-        # VALORES OBSERVACIONALES
+        # Likelihood fitting
+        
         Yp_obs, sigma_Yp = 0.245, 0.003
         D_obs, sigma_D = 2.527e-5, 0.03e-5    
         Li_obs, sigma_Li = 1.6e-10, 0.3e-10    
         n_sigma = 2.0
         
-        
-
-        # OPTIMIZACIÓN DE ETA PARA DEUTERIO (D/H)
         log_eta = np.log10(eta)
         f_pr = interp1d(log_eta, pr, kind='cubic', bounds_error=False, fill_value="extrapolate")
         f_Yp = interp1d(log_eta, Y_p_mass, kind='cubic', bounds_error=False, fill_value="extrapolate")
@@ -165,7 +151,6 @@ else:
                 val_min = f_D(log_eta_inicio)
                 val_max = f_D(log_eta_fin)
                 
-                # El Deuterio es monótono decreciente, cruzará la línea de forma más natural
                 if (val_min - target) * (val_max - target) <= 0:
                     return brentq(lambda x: f_D(x) - target, log_eta_inicio, log_eta_fin)
                 else:
@@ -178,20 +163,15 @@ else:
             log_eta_min_val = encontrar_eta_seguro_D(D_obs - n_sigma * sigma_D)
             log_eta_max_val = encontrar_eta_seguro_D(D_obs + n_sigma * sigma_D)
             
-            # Ordenamos para evitar invertir los límites
             eta_opt = 10**log_eta_opt
             eta_min_val, eta_max_val = sorted([10**log_eta_min_val, 10**log_eta_max_val])
             ajuste_exitoso = True
             
-            # NUEVO: Cálculo del error +/- promedio a 2 sigma
             delta_eta_plus = eta_max_val - eta_opt
             delta_eta_minus = eta_opt - eta_min_val
             delta_eta_avg_2sigma = (delta_eta_plus + delta_eta_minus) / 2.0
             
-            # IMPRESIÓN POR CONSOLA
-            print("\n" + "="*50)
-            print("ETA ÓPTIMO (Deuterio)")
-            print("="*50)
+            print("# ETA ÓPTIMO (Deuterio)")
             print(f"-> Eta óptimo hallado: {eta_opt:.4e} ± {delta_eta_avg_2sigma:.4e} (2 sigma)")
             print(f"[Rango exacto 2 sigma: {eta_min_val:.4e} a {eta_max_val:.4e}]")
             print("\nFracciones de masa resultantes:")
@@ -257,8 +237,6 @@ else:
         plt.savefig(pdf_filename_eta_completa, format='pdf', bbox_inches='tight')
         print(f"Gráfica de abundancias completas guardada como: {pdf_filename_eta_completa}")
         
-        
-        """
         # SCRHAMM PLOT
         fig, axes = plt.subplots(2, 2, sharex=True, figsize=(14, 8), num=5)
         ax1, ax2 = axes[0, 0], axes[0, 1]
@@ -295,14 +273,11 @@ else:
         ax4.yaxis.set_label_coords(1.05, 0.3)
         ax4.axhspan(Li_obs - n_sigma*sigma_Li, Li_obs + n_sigma*sigma_Li, color='yellow', alpha=0.5, zorder=1)
         
-        # Colocar los labels Y de la derecha en su sitio
         ax2.yaxis.set_label_position("right")
         ax4.yaxis.set_label_position("right")
         
-        # --- CONFIGURACIÓN DEL EJE X (SIN SOLAPAMIENTOS) ---
-        # Función para elegir qué números menores se imprimen
         def log_minor_formatter(x, pos):
-            if x in [2, 3, 4, 6]:  # Solo imprimimos estos para evitar solapamiento
+            if x in [2, 3, 4, 6]:
                 return f"{int(x)}"
             return ""
         
@@ -311,16 +286,12 @@ else:
             ax.set_xlim(eta_10.min(), eta_10.max())
             ax.set_xlabel(r'Baryon-to-photon ratio $\eta \times 10^{10}$', fontsize=24)
             
-            # Formateador mayor (1, 10) sin decimales
             ax.xaxis.set_major_formatter(ticker.FormatStrFormatter('%g'))
-            # Formateador menor selectivo
             ax.xaxis.set_minor_formatter(ticker.FuncFormatter(log_minor_formatter))
         
-        # --- CONFIGURACIÓN GLOBAL DE EJES Y LÍNEAS VERTICALES ---
         for i, ax in enumerate([ax1, ax2, ax3, ax4]):
             ax.grid(True, which='major', linestyle='-', alpha=0.5)
             ax.grid(True, which='minor', linestyle=':', alpha=0.3)
-            # AUMENTO DEL TAMAÑO DE LOS NÚMEROS A 20
             ax.tick_params(axis='y', direction='in', right=True, which='both', labelsize=20)
             ax.tick_params(axis='x', direction='in', top=True, which='both', labelsize=20)
             
@@ -337,17 +308,12 @@ else:
                 lbl_band = r'$2\sigma$ range ($\eta_{opt}$)' if i == 0 else None
                 ax.axvspan(eta_min_val * 1e10, eta_max_val * 1e10, color='tomato', alpha=0.4, zorder=1, label=lbl_band)
         
-        # Leyenda grande y legible
         ax1.legend(loc='best', fontsize=18, framealpha=0.9, edgecolor='gray')
-        
-        # Ajuste de márgenes para que las letras grandes no se corten
         fig.subplots_adjust(left=0.12, right=0.88, top=0.95, bottom=0.12, hspace=0.10, wspace=0.25)
         
         pdf_filename_eta_schramm = f"grafica_schramm_{nombre_base_eta}.pdf"
         plt.savefig(pdf_filename_eta_schramm, format='pdf', bbox_inches='tight')
         print(f"Gráfica Schramm guardada como: {pdf_filename_eta_schramm}")
-        """
-        
         
         # GRÁFICA DE LA LIKELIHOOD
         plt.figure(6, figsize=(15, 6), dpi=200)
