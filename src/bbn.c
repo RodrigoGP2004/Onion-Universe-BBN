@@ -876,13 +876,13 @@ int main() {
     FILE *fp = NULL;
     
     if (!is_multi) {
-        sprintf(filename, "resultados_bbn_%s_eta%.3e_Oml0%.7f_pp%s.csv", 
+        sprintf(filename, "bbn_%s_eta%.3e_Oml0%.7f_pp%s.csv", 
                 modelo == 0 ? "LCDM" : "Onion", eta_single, 
                 modelo == 0 ? 0.72 : omega_single, include_pp ? "SI" : "NO");
         fp = fopen(filename, "w");
         fprintf(fp, "t,T_MeV,t_onion,T_nu,n,p,d,t_iso,3He,4He,7Li,7Be,8B,12C,13N,13C,14N,15O,15N,16O,17F,17O,18F,18O,19F,14O,18Ne,9Be,20Ne,24Mg,28Si,32S,36Ar,40Ca,44Ti\n");
     } else {
-        sprintf(filename, "resultados_abundancias_%s_pp%s_%dx%dvals.csv", 
+        sprintf(filename, "abundances_sweep_%s_pp%s_%dx%dvals.csv", 
                 modelo == 0 ? "LCDM" : "Onion", include_pp ? "SI" : "NO", N_OMEGA, N_ETA);
         fp = fopen(filename, "w");
         fprintf(fp, "Omega_L0,T_nu,eta,n,p,d,t_iso,3He,4He,7Li,7Be,8B,12C,13N,13C,14N,15O,15N,16O,17F,17O,18F,18O,19F,14O,18Ne,9Be,20Ne,24Mg,28Si,32S,36Ar,40Ca,44Ti\n");
