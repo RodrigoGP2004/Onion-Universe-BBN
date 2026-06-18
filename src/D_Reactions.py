@@ -2,13 +2,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 def reaclib_7(T9, a0, a1, a2, a3, a4, a5, a6):
-    T9_safe = np.maximum(T9, 1e-9)
+    T9 = np.maximum(T9, 1e-9)
     t13 = np.cbrt(T9_safe)
-    t53 = T9_safe * t13**2
-    lnt9 = np.log(T9_safe)
-    return a0 + a1/T9_safe + a2/t13 + a3*t13 + a4*T9_safe + a5*t53 + a6*lnt9
+    t53 = T9 * t13**2
+    lnt9 = np.log(T9)
+    return a0 + a1/T9 + a2/t13 + a3*t13 + a4*T9 + a5*t53 + a6*lnt9
 
-def get_rates(T9, coefs_list):
+def rates(T9, coefs_list):
     rate = np.zeros_like(T9)
     for c in coefs_list:
         rate += np.exp(np.clip(reaclib_7(T9, *c), -700, 100))
@@ -23,7 +23,7 @@ def fit_reaclib_7_free(T9, R):
     coefs, _, _, _ = np.linalg.lstsq(X, Y, rcond=None)
     return [coefs.tolist()]
 
-def apply_detailed_balance(new_dir, jina_dir, jina_inv):
+def detailed_balance(new_dir, jina_dir, jina_inv):
     shift = [jina_inv[i] - jina_dir[i] for i in range(7)]
     return [[new_dir[0][i] + shift[i] for i in range(7)]]
 
@@ -71,9 +71,9 @@ new_ddp_dir = fit_reaclib_7_free(T9_gomez, R_ddp)
 
 # Detailed balance for inverse reactions
 
-new_luna_inv = apply_detailed_balance(new_luna_dir, jina_dp[0], jina_dp_inv[0])
-new_ddn_inv = apply_detailed_balance(new_ddn_dir, jina_ddn[0], jina_ddn_inv[0])
-new_ddp_inv = apply_detailed_balance(new_ddp_dir, jina_ddp[0], jina_ddp_inv[0])
+new_luna_inv = detailed_balance(new_luna_dir, jina_dp[0], jina_dp_inv[0])
+new_ddn_inv = detailed_balance(new_ddn_dir, jina_ddn[0], jina_ddn_inv[0])
+new_ddp_inv = detailed_balance(new_ddp_dir, jina_ddp[0], jina_ddp_inv[0])
 
 # Plot (general config)
 
@@ -84,9 +84,9 @@ fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 6))
 step = 3
 
 # Left panel
-ax1.loglog(T_MeV_cont, get_rates(T9_cont, jina_dp), color='C0', linestyle='-', alpha=0.5, label=r'JINA $d(p,\gamma)^3\mathrm{He}$')
-ax1.loglog(T_MeV_cont, get_rates(T9_cont, jina_ddn), color='C1', linestyle='-', alpha=0.5, label=r'JINA $d(d,n)^3\mathrm{He}$')
-ax1.loglog(T_MeV_cont, get_rates(T9_cont, jina_ddp), color='C2', linestyle='-', alpha=0.5, label=r'JINA $d(d,p)^3\mathrm{H}$')
+ax1.loglog(T_MeV_cont, rates(T9_cont, jina_dp), color='C0', linestyle='-', alpha=0.5, label=r'JINA $d(p,\gamma)^3\mathrm{He}$')
+ax1.loglog(T_MeV_cont, rates(T9_cont, jina_ddn), color='C1', linestyle='-', alpha=0.5, label=r'JINA $d(d,n)^3\mathrm{He}$')
+ax1.loglog(T_MeV_cont, rates(T9_cont, jina_ddp), color='C2', linestyle='-', alpha=0.5, label=r'JINA $d(d,p)^3\mathrm{H}$')
 
 ax1.errorbar(T9_luna/11.6045, R_luna, yerr=err_luna, fmt='o', color='C0', markersize=5, capsize=4, label=r'LUNA (2020) $d(p,\gamma)^3\mathrm{He}$')
 ax1.errorbar(T9_gomez[::step]/11.6045, R_ddn[::step], yerr=err_ddn[:, ::step], fmt='s', color='C1', markersize=5, capsize=4, label=r'Gómez Iñesta $d(d,n)^3\mathrm{He}$')
@@ -102,16 +102,16 @@ ax1.legend()
 
 # Right panel
 
-ax2.errorbar(T9_luna/11.6045, R_luna / get_rates(T9_luna, jina_dp), 
-             yerr=err_luna / get_rates(T9_luna, jina_dp), fmt='o', color='C0', markersize=5, capsize=4, alpha=0.9, label=r'Data: $d(p,\gamma)^3\mathrm{He}$')
-ax2.errorbar(T9_gomez[::step]/11.6045, R_ddn[::step] / get_rates(T9_gomez[::step], jina_ddn), 
-             yerr=err_ddn[:, ::step] / get_rates(T9_gomez[::step], jina_ddn), fmt='s', color='C1', markersize=5, capsize=4, alpha=0.9, label=r'Data: $d(d,n)^3\mathrm{He}$')
-ax2.errorbar(T9_gomez[::step]/11.6045, R_ddp[::step] / get_rates(T9_gomez[::step], jina_ddp), 
-             yerr=err_ddp[:, ::step] / get_rates(T9_gomez[::step], jina_ddp), fmt='^', color='C2', markersize=5, capsize=4, alpha=0.9, label=r'Data: $d(d,p)^3\mathrm{H}$')
+ax2.errorbar(T9_luna/11.6045, R_luna / rates(T9_luna, jina_dp), 
+             yerr=err_luna / rates(T9_luna, jina_dp), fmt='o', color='C0', markersize=5, capsize=4, alpha=0.9, label=r'Data: $d(p,\gamma)^3\mathrm{He}$')
+ax2.errorbar(T9_gomez[::step]/11.6045, R_ddn[::step] / rates(T9_gomez[::step], jina_ddn), 
+             yerr=err_ddn[:, ::step] / rates(T9_gomez[::step], jina_ddn), fmt='s', color='C1', markersize=5, capsize=4, alpha=0.9, label=r'Data: $d(d,n)^3\mathrm{He}$')
+ax2.errorbar(T9_gomez[::step]/11.6045, R_ddp[::step] / rates(T9_gomez[::step], jina_ddp), 
+             yerr=err_ddp[:, ::step] / rates(T9_gomez[::step], jina_ddp), fmt='^', color='C2', markersize=5, capsize=4, alpha=0.9, label=r'Data: $d(d,p)^3\mathrm{H}$')
 
-ax2.plot(T_MeV_cont, get_rates(T9_cont, new_luna_dir) / get_rates(T9_cont, jina_dp), color='C0', linestyle='--', linewidth=2.5, label=r'Fit: $d(p,\gamma)^3\mathrm{He}$')
-ax2.plot(T_MeV_cont, get_rates(T9_cont, new_ddn_dir) / get_rates(T9_cont, jina_ddn), color='C1', linestyle='--', linewidth=2.5, label=r'Fit: $d(d,n)^3\mathrm{He}$')
-ax2.plot(T_MeV_cont, get_rates(T9_cont, new_ddp_dir) / get_rates(T9_cont, jina_ddp), color='C2', linestyle='--', linewidth=2.5, label=r'Fit: $d(d,p)^3\mathrm{H}$')
+ax2.plot(T_MeV_cont, rates(T9_cont, new_luna_dir) / rates(T9_cont, jina_dp), color='C0', linestyle='--', linewidth=2.5, label=r'Fit: $d(p,\gamma)^3\mathrm{He}$')
+ax2.plot(T_MeV_cont, rates(T9_cont, new_ddn_dir) / rates(T9_cont, jina_ddn), color='C1', linestyle='--', linewidth=2.5, label=r'Fit: $d(d,n)^3\mathrm{He}$')
+ax2.plot(T_MeV_cont, rates(T9_cont, new_ddp_dir) / rates(T9_cont, jina_ddp), color='C2', linestyle='--', linewidth=2.5, label=r'Fit: $d(d,p)^3\mathrm{H}$')
 
 ax2.set_xscale('log')
 ax2.set_xlim(1, 0.001)
@@ -123,12 +123,11 @@ ax2.grid(True, which="both", ls="--", alpha=0.5)
 ax2.legend(loc='upper right', ncol=1, fontsize=14)
 
 plt.tight_layout()
-plt.savefig('comparation_rates.pdf', format='pdf', bbox_inches='tight')
-print("Gráfica generada con éxito: 'comparation_rates.pdf'\n")
+plt.savefig('D_rates.pdf', format='pdf', bbox_inches='tight')
 
 # Print code to directly copy into C
 
-print("// --- CÓDIGO ACTUALIZADO PARA bbn.c ---")
+print("// --- UPDATED RATES FOR bbn.c ---")
 print(format_c("p_dp_3He", new_luna_dir))
 print("r_array[1][k] = jina_dict(T9, 1, p_dp_3He);")
 print(format_c("p_photodes_3He", new_luna_inv))
